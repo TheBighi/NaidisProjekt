@@ -14,14 +14,30 @@ const sequelize = new Sequelize('NaidisProjekt', 'bigi', 'qwerty', {
 });
 
 sequelize.authenticate()
-  .then(() => console.log('Connected to DB'))
-  .catch(err => console.error('DB error:', err));
-
-
+  .then(() => {
+    console.log('Connected to DB');
+  })
+  .catch(err => {
+    console.error('DB error:', err)
+  });
 
 app.get('/', (req, res) => {
     res.send('OK')
 })
+
+app.get('/api/health', async (req, res) => {
+  try {
+    await sequelize.authenticate();
+    res.json({ 
+      status: "ok", 
+      db: "ok" });
+  } catch (err) {
+    res.json({ 
+      status: "ok", 
+      db: "fail" });
+  }
+})
+
 
 app.listen(3001, () => {
   console.log('Server running at http://127.0.0.1:3001');

@@ -1,5 +1,5 @@
 'use strict';
-/** @type {import('sequelize-cli').Migration} */
+
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('EnergyReadings', {
@@ -9,9 +9,6 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      id: {
-        type: Sequelize.INTEGER
-      },
       timestamp: {
         type: Sequelize.DATE
       },
@@ -19,16 +16,10 @@ module.exports = {
         type: Sequelize.STRING
       },
       price_eur_mwh: {
-        type: Sequelize.NUMBER
+        type: Sequelize.DECIMAL(10, 2)
       },
       source: {
         type: Sequelize.STRING
-      },
-      created_at: {
-        type: Sequelize.DATE
-      },
-      updated_at: {
-        type: Sequelize.DATE
       },
       createdAt: {
         allowNull: false,
@@ -40,6 +31,7 @@ module.exports = {
       }
     });
   },
+
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable('EnergyReadings');
   }
