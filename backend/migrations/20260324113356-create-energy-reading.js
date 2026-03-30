@@ -10,10 +10,12 @@ module.exports = {
         type: Sequelize.INTEGER
       },
       timestamp: {
-        type: Sequelize.DATE
+        type: Sequelize.DATE,
+        unique: 'unique_reading'
       },
       location: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING,
+        unique: 'unique_reading'
       },
       price_eur_mwh: {
         type: Sequelize.DECIMAL(10, 2)

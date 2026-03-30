@@ -38,6 +38,11 @@ app.get('/api/health', async (req, res) => {
   }
 })
 
+const energyreadingRouter = require('./routes/energyreading');
+app.use('/', energyreadingRouter);
+
+
+
 
 app.listen(3001, () => {
   console.log('Server running at http://127.0.0.1:3001');

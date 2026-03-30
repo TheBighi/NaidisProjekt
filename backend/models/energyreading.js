@@ -8,33 +8,34 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   EnergyReading.init({
-    id:{
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-      allowNull: false
-    },
-    timestamp: {
-      type: DataTypes.DATE,
-      allowNull: false
-    },
-    location: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    price_eur_mwh: {
-      type: DataTypes.NUMBER,
-      allowNull: true
-    },
-    source: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    created_at: DataTypes.DATE,
-    updated_at: DataTypes.DATE
+      id: {
+          type: DataTypes.INTEGER,
+          autoIncrement: true,
+          primaryKey: true,
+          allowNull: false
+      },
+      timestamp: {
+          type: DataTypes.DATE,
+          allowNull: false
+      },
+      location: {
+          type: DataTypes.STRING,
+          allowNull: false
+      },
+      price_eur_mwh: {
+          type: DataTypes.DECIMAL(10, 2),
+          allowNull: true
+      },
+      source: {
+          type: DataTypes.STRING,
+          allowNull: false
+      },
+      updatedAt: DataTypes.DATE,
+      createdAt: DataTypes.DATE
   }, {
-    sequelize,
-    modelName: 'EnergyReading',
+      sequelize,
+      modelName: 'EnergyReading',
+      timestamps: false
   });
   return EnergyReading;
 };
