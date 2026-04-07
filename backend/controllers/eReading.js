@@ -1,5 +1,6 @@
 const { EnergyReading } = require('../models');
 const { Op } = require('sequelize');
+const { fetchAndSaveEleringData } = require('../services/eleringService');
 
 const importJsonData = async (req, res) => {
     const eReadings = req.body
@@ -75,21 +76,77 @@ const importJsonData = async (req, res) => {
     })
 }
 
+
 const getReadingsInRange = async (req, res) => {
     const { start, end, location } = req.query;
-    console.log("Received query params:", { start, end, location });
+    const requestedLocation = location || "EE";
 
-    EnergyReading.findAll({
-        where: {
-            timestamp: { [Op.between]: [new Date(start), new Date(end)] },
-            location: location
+    try {
+        let readings = await EnergyReading.findAll({
+            where: {
+                timestamp: { [Op.between]: [new Date(start), new Date(end)] },
+                location: requestedLocation
+            },
+            order: [['timestamp', 'ASC']]
+        });
+
+        if (readings.length === 0) {
+            console.log(`Data missing for ${requestedLocation}. Fetching ALL regions from Elering...`);
+            
+            const startIso = new Date(start).toISOString();
+            const endIso = new Date(end).toISOString();
+
+            await fetchAndSaveEleringData(startIso, endIso);
+
+            readings = await EnergyReading.findAll({
+                where: {
+                    timestamp: { [Op.between]: [new Date(start), new Date(end)] },
+                    location: requestedLocation
+                },
+                order: [['timestamp', 'ASC']]
+            });
         }
-    }).then((readings) => {
+
         res.json(readings);
-    }).catch((err) => {
+
+    } catch (err) {
         console.error("Failed to fetch readings:", err.message);
         res.status(500).json({ error: err.message });
-    });
+    }
 };
 
-module.exports = { importJsonData, getReadingsInRange }
+const syncPrices = async (req, res) => {
+    try {
+        const { start, end } = req.body; 
+
+        let startIso, endIso;
+
+        if (start && end) {
+            startIso = new Date(start).toISOString();
+            endIso = new Date(end).toISOString();
+        } else {
+            const now = new Date();
+            now.setUTCHours(0, 0, 0, 0);
+            startIso = now.toISOString();
+
+            const endOfToday = new Date(now);
+            endOfToday.setUTCHours(23, 59, 59, 999);
+            endIso = endOfToday.toISOString();
+        }
+
+        console.log(`Frontend triggered manual sync for range: ${startIso} to ${endIso}`);
+        const recordsSaved = await fetchAndSaveEleringData(startIso, endIso);
+
+        res.json({ 
+            success: true, 
+            message: "Sync completed successfully", 
+            records_saved: recordsSaved 
+        });
+
+    } catch (err) {
+        console.error("API request failed:", err.message);
+        res.status(503).json({ error: "PRICE_API_UNAVAILABLE" }); 
+    }
+};
+
+module.exports = { importJsonData, getReadingsInRange, syncPrices };

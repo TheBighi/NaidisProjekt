@@ -35,7 +35,13 @@ module.exports = (sequelize, DataTypes) => {
   }, {
       sequelize,
       modelName: 'EnergyReading',
-      timestamps: false
+      timestamps: false,
+      indexes: [
+          {
+              unique: true,
+              fields: ['timestamp', 'location']
+          }
+      ]
   });
   return EnergyReading;
 };
