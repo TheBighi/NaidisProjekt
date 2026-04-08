@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 const SyncPrices = () => {
     const [start, setStart] = useState('');
     const [end, setEnd] = useState('');
-    const [location, setLocation] = useState('EE');
     
     const [isLoading, setIsLoading] = useState(false);
     const [feedback, setFeedback] = useState(null);
@@ -15,7 +14,7 @@ const SyncPrices = () => {
         setFeedback(null);
 
         try {
-            const payload = { location };
+            const payload = {};
 
             if (start && end) {
 
@@ -23,7 +22,6 @@ const SyncPrices = () => {
                 payload.end = new Date(`${end}T23:59:59`).toISOString();
             }
 
-            // Requirement 2: Send POST request to backend
             const response = await fetch('http://localhost:3001/api/sync/prices', {
                 method: 'POST',
                 headers: {
@@ -86,19 +84,6 @@ const SyncPrices = () => {
                         onChange={(e) => setEnd(e.target.value)} 
                         style={{ width: '100%', padding: '8px' }}
                     />
-                </div>
-
-                <div>
-                    <label style={{ display: 'block', marginBottom: '5px' }}>Piirkond:</label>
-                    <select 
-                        value={location} 
-                        onChange={(e) => setLocation(e.target.value)}
-                        style={{ width: '100%', padding: '8px' }}
-                    >
-                        <option value="EE">EE (Eesti)</option>
-                        <option value="LV">LV (Läti)</option>
-                        <option value="FI">FI (Soome)</option>
-                    </select>
                 </div>
 
                 <button 
