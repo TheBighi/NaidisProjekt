@@ -9,7 +9,7 @@ import Dashboard from './components/Dashboard'
 
 
 function App() {
-  const [selected, setSelected] = useState(0)
+  const [selected, setSelected] = useState('dashboard')
 
   return (
 
