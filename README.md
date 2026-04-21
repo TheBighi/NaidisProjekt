@@ -2,13 +2,15 @@
 
 ```
 npm i
-node index.js
+node server.js
 
 npx sequelize-cli db:migrate
 npx sequelize-cli db:migrate:undo:all
 
 npx sequelize-cli db:seed:undo:all
 npx sequelize-cli db:seed:all
+
+npm run test (testib kuidas server reageerib kui JSON impordis on valed andmed ja või duplikaadid ja testib ka /api/readings vastust kui on vale date input)
 ```
 
 ## Init frontend

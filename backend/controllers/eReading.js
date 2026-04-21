@@ -1,9 +1,16 @@
 const { EnergyReading } = require('../models');
 const { Op } = require('sequelize');
 const { fetchAndSaveEleringData } = require('../services/eleringService');
+const ApiError = require('../utils/ApiError');
+const { parseRange } = require('../utils/validation');
 
-const importJsonData = async (req, res) => {
+const importJsonData = async (req, res, next) => {
     const eReadings = req.body
+
+    if (!Array.isArray(eReadings)) {
+        return next(new ApiError(400, 'Body must be an array', 'VALIDATION_ERROR'))
+    }
+
     const eReadingLen = eReadings.length
     const cleanData = []
     let duplicatesDetected = 0
@@ -65,11 +72,10 @@ const importJsonData = async (req, res) => {
             fields: ['timestamp', 'location', 'price_eur_mwh', 'source', 'createdAt', 'updatedAt']
         })
     } catch (err) {
-        console.error("BulkCreate failed:", err.message, err.parent?.message)
-        return res.status(500).json({ error: err.message, detail: err.parent?.message })
+        return next(new ApiError(500, 'Import failed.', 'IMPORT_FAILED'))
     }
 
-    res.json({ 
+    return res.json({ 
         "Inserted": cleanData.length, 
         "Skipped": eReadingLen - cleanData.length, 
         "duplicates_detected": duplicatesDetected 
@@ -77,14 +83,19 @@ const importJsonData = async (req, res) => {
 }
 
 
-const getReadingsInRange = async (req, res) => {
+const getReadingsInRange = async (req, res, next) => {
     const { start, end, location } = req.query;
     const requestedLocation = location || "EE";
+
+    const parsedRange = parseRange(start, end);
+    if (!parsedRange) {
+        return next(new ApiError(400, 'Invalid date range. Use ISO 8601', 'VALIDATION_ERROR'));
+    }
 
     try {
         let readings = await EnergyReading.findAll({
             where: {
-                timestamp: { [Op.between]: [new Date(start), new Date(end)] },
+                timestamp: { [Op.between]: [parsedRange.startDate, parsedRange.endDate] },
                 location: requestedLocation
             },
             order: [['timestamp', 'ASC']]
@@ -93,14 +104,14 @@ const getReadingsInRange = async (req, res) => {
         if (readings.length === 0) {
             console.log(`Data missing for ${requestedLocation}. Fetching ALL regions from Elering...`);
             
-            const startIso = new Date(start).toISOString();
-            const endIso = new Date(end).toISOString();
+            const startIso = parsedRange.startDate.toISOString();
+            const endIso = parsedRange.endDate.toISOString();
 
             await fetchAndSaveEleringData(startIso, endIso);
 
             readings = await EnergyReading.findAll({
                 where: {
-                    timestamp: { [Op.between]: [new Date(start), new Date(end)] },
+                    timestamp: { [Op.between]: [parsedRange.startDate, parsedRange.endDate] },
                     location: requestedLocation
                 },
                 order: [['timestamp', 'ASC']]
@@ -110,20 +121,24 @@ const getReadingsInRange = async (req, res) => {
         res.json(readings);
 
     } catch (err) {
-        console.error("Failed to fetch readings:", err.message);
-        res.status(500).json({ error: err.message });
+        next(new ApiError(500, 'Failed to fetch readings.', 'READINGS_FETCH_FAILED'));
     }
 };
 
-const syncPrices = async (req, res) => {
+const syncPrices = async (req, res, next) => {
     try {
         const { start, end } = req.body; 
 
         let startIso, endIso;
 
         if (start && end) {
-            startIso = new Date(start).toISOString();
-            endIso = new Date(end).toISOString();
+            const parsedRange = parseRange(start, end);
+            if (!parsedRange) {
+                return next(new ApiError(400, 'Invalid date range. Use ISO 8601', 'VALIDATION_ERROR'));
+            }
+
+            startIso = parsedRange.startDate.toISOString();
+            endIso = parsedRange.endDate.toISOString();
         } else {
             const now = new Date();
             now.setUTCHours(0, 0, 0, 0);
@@ -144,9 +159,32 @@ const syncPrices = async (req, res) => {
         });
 
     } catch (err) {
-        console.error("API request failed:", err.message);
-        res.status(503).json({ error: "PRICE_API_UNAVAILABLE" }); 
+        next(new ApiError(503, 'Price API unavailable.', 'PRICE_API_UNAVAILABLE'));
     }
 };
 
-module.exports = { importJsonData, getReadingsInRange, syncPrices };
+const cleanupReadings = async (req, res, next) => {
+    try {
+        const { source } = req.query;
+
+        if (source !== 'UPLOAD') {
+            return next(new ApiError(400, 'Only source=UPLOAD is supported', 'VALIDATION_ERROR'));
+        }
+
+        const deletedCount = await EnergyReading.destroy({
+            where: {
+                source: 'UPLOAD'
+            }
+        });
+
+        if (deletedCount === 0) {
+            return res.json({ message: 'No UPLOAD records found.' });
+        }
+
+        return res.json({ message: `Deleted ${deletedCount} uploaded records.` });
+    } catch (err) {
+        return next(new ApiError(500, 'Cleanup failed.', 'CLEANUP_FAILED'));
+    }
+};
+
+module.exports = { importJsonData, getReadingsInRange, syncPrices, cleanupReadings };

@@ -5,6 +5,7 @@ const SyncPrices = () => {
     const [end, setEnd] = useState('');
     
     const [isLoading, setIsLoading] = useState(false);
+    const [isCleaning, setIsCleaning] = useState(false);
     const [feedback, setFeedback] = useState(null);
 
     const handleSync = async (e) => {
@@ -60,6 +61,38 @@ const SyncPrices = () => {
         }
     };
 
+    const handleCleanup = async () => {
+        setIsCleaning(true);
+        setFeedback(null);
+
+        try {
+            const response = await fetch('http://localhost:3001/api/readings?source=UPLOAD', {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setFeedback({
+                    type: 'success',
+                    message: data.message || 'Deleted UPLOAD data.'
+                });
+            } else {
+                setFeedback({
+                    type: 'error',
+                    message: 'Cleanup failed. Please try again.'
+                });
+            }
+        } catch (error) {
+            setFeedback({
+                type: 'error',
+                message: 'Cleanup failed. Please try again.'
+            });
+        } finally {
+            setIsCleaning(false);
+        }
+    };
+
     return (
         <div style={{ maxWidth: '400px', margin: '20px auto', padding: '20px', border: '1px solid #ccc', borderRadius: '8px' }}>
             <h2>Sünkroniseeri Elektrihinnad</h2>
@@ -100,6 +133,23 @@ const SyncPrices = () => {
                     }}
                 >
                     {isLoading ? 'Loading...' : 'Sync Prices'}
+                </button>
+
+                <button
+                    type="button"
+                    onClick={handleCleanup}
+                    disabled={isCleaning}
+                    style={{
+                        padding: '10px',
+                        backgroundColor: isCleaning ? '#9ca3af' : '#dc2626',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: isCleaning ? 'not-allowed' : 'pointer',
+                        fontWeight: 'bold'
+                    }}
+                >
+                    {isCleaning ? 'Deleting...' : 'Delete UPLOAD data'}
                 </button>
             </form>
 
