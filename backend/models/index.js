@@ -5,7 +5,11 @@ const path = require('path');
 const Sequelize = require('sequelize');
 const process = require('process');
 const basename = path.basename(__filename);
-const env = process.env.NODE_ENV || 'development';
+let env = process.env.NODE_ENV || 'development';
+// If running in Docker with development NODE_ENV, use docker config
+if (env === 'development' && process.env.DB_HOST === 'db') {
+  env = 'docker';
+}
 const config = require(__dirname + '/../config/config.json')[env];
 const db = {};
 

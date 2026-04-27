@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: naidisprojekt-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_USER: bigi
+      MYSQL_PASSWORD: qwerty
+      MYSQL_DATABASE: naidisprojekt
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - naidis-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: naidisprojekt-backend
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      DB_HOST: db
+      DB_USER: bigi
+      DB_PASSWORD: qwerty
+      DB_NAME: naidisprojekt
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - naidis-network
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+volumes:
+  mysql_data:
+
+networks:
+  naidis-network:
+    driver: bridge

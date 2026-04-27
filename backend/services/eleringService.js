@@ -54,7 +54,8 @@ const fetchAndSaveEleringData = async (startIso, endIso, locations = ["EE", "LV"
         return allCleanData.length;
 
     } catch (error) {
-        throw error; 
+        console.error('Error in fetchAndSaveEleringData:', error.message);
+        throw error;
     }
 };
 

@@ -10,16 +10,24 @@ function Dashboard() {
 
   useEffect(() => {
     const fetchDefaultData = async () => {
-      const response = await fetch(
-        'http://localhost:3001/api/readings?start=2025-04-01T00:00:00.000Z&end=2025-04-02T00:00:00.000Z&location=EE'
-      );
-      const json = await response.json();
-      const formatted = json.map((item) => ({
-        date: new Date(item.timestamp),
-        price: parseFloat(item.price_eur_mwh),
-      }));
-      setData(formatted);
-      setAverages(getAverages(formatted));
+      try {
+        const response = await fetch(
+          'http://localhost:3001/api/readings?start=2025-04-01T00:00:00.000Z&end=2025-04-02T00:00:00.000Z&location=EE'
+        );
+        if (!response.ok) {
+          console.error('Failed to fetch data:', response.status);
+          return;
+        }
+        const json = await response.json();
+        const formatted = json.map((item) => ({
+          date: new Date(item.timestamp),
+          price: parseFloat(item.price_eur_mwh),
+        }));
+        setData(formatted);
+        setAverages(getAverages(formatted));
+      } catch (error) {
+        console.error('Error fetching default data:', error);
+      }
     };
 
     fetchDefaultData();
@@ -69,33 +77,44 @@ function Dashboard() {
   };
 
   const getDataset = async () => {
-    const startInput = document.getElementById('start').value;
-    const endInput = document.getElementById('end').value;
-    const locationInput = document.getElementById('location').value;
+    try {
+      const startInput = document.getElementById('start').value;
+      const endInput = document.getElementById('end').value;
+      const locationInput = document.getElementById('location').value;
 
-    const locations = ['EE', 'LV', 'FI'];
-    const startISO = new Date(startInput).toISOString();
-    const endISO = new Date(endInput).toISOString();
+      const locations = ['EE', 'LV', 'FI'];
+      const startISO = new Date(startInput).toISOString();
+      const endISO = new Date(endInput).toISOString();
 
-    const [eeJson, lvJson, fiJson] = await Promise.all(
-      locations.map((loc) =>
-        fetch(`http://localhost:3001/api/readings?start=${startISO}&end=${endISO}&location=${loc}`)
-          .then((r) => r.json())
-          .then((json) => json.map((item) => ({ ...item, location: loc })))
-      )
-    );
+      const [eeJson, lvJson, fiJson] = await Promise.all(
+        locations.map((loc) =>
+          fetch(`http://localhost:3001/api/readings?start=${startISO}&end=${endISO}&location=${loc}`)
+            .then((r) => {
+              if (!r.ok) throw new Error(`Failed to fetch ${loc}: ${r.status}`);
+              return r.json();
+            })
+            .then((json) => {
+              if (!Array.isArray(json)) throw new Error(`Invalid response for ${loc}`);
+              return json.map((item) => ({ ...item, location: loc }));
+            })
+        )
+      );
 
-    const allData = [...eeJson, ...lvJson, ...fiJson];
-    setRegionAvg(getAverageByLocation(allData));
-    setAllRegionsData(mergeRegionData(eeJson, lvJson, fiJson));
+      const allData = [...eeJson, ...lvJson, ...fiJson];
+      setRegionAvg(getAverageByLocation(allData));
+      setAllRegionsData(mergeRegionData(eeJson, lvJson, fiJson));
 
-    const mainJson = { EE: eeJson, LV: lvJson, FI: fiJson }[locationInput];
-    const formatted = mainJson.map((item) => ({
-      date: new Date(item.timestamp),
-      price: parseFloat(item.price_eur_mwh),
-    }));
-    setData(formatted);
-    setAverages(getAverages(formatted));
+      const mainJson = { EE: eeJson, LV: lvJson, FI: fiJson }[locationInput];
+      const formatted = mainJson.map((item) => ({
+        date: new Date(item.timestamp),
+        price: parseFloat(item.price_eur_mwh),
+      }));
+      setData(formatted);
+      setAverages(getAverages(formatted));
+    } catch (error) {
+      console.error('Error loading dataset:', error);
+      alert('Failed to load data: ' + error.message);
+    }
   };
 
   return (

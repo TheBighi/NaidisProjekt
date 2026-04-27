@@ -159,6 +159,7 @@ const syncPrices = async (req, res, next) => {
         });
 
     } catch (err) {
+        console.error('Sync error:', err);
         next(new ApiError(503, 'Price API unavailable.', 'PRICE_API_UNAVAILABLE'));
     }
 };

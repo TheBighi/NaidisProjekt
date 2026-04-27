@@ -13,6 +13,13 @@
     "host": "127.0.0.1",
     "dialect": "mysql"
   },
+  "docker": {
+    "username": "bigi",
+    "password": "qwerty",
+    "database": "naidisprojekt",
+    "host": "db",
+    "dialect": "mysql"
+  },
   "production": {
     "username": "bigi",
     "password": "qwerty",
